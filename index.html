@@ -1,14 +1,20 @@
- <!DOCTYPE html>
+<!DOCTYPE html>
 
 <html lang="ar" dir="rtl">
 <head>
   <meta charset="UTF-8">
+
   <meta name="viewport" content="width=device-width, initial-scale=1">
+
   <meta name="description" content="سما: الطقس الحالي وتوقعات الساعات والأيام القادمة لأي مدينة.">
-  <title>سارة | حالة الطقس</title>
+
+  <title>سار | حالة الطقس</title>
+
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+
   <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Baloo+Bhaijaan+2:wght@500;700;800&family=Rubik:wght@400;500&display=swap">
+
   <link rel="stylesheet" href="style.css">
 </head>
 
@@ -20,9 +26,12 @@
       <label for="city-input" class="visually-hidden">اسم المدينة</label>
 
       <input id="city-input" name="city" type="search" autocomplete="off"
-             placeholder="ابحث عن مدينة" value="Cairo" required>
+             placeholder="ابحث عن مدينة" value="Cairo" required
+             role="combobox" aria-autocomplete="list" aria-controls="suggestions" aria-expanded="false">
 
       <button type="submit">اعرض الطقس</button>
+
+      <ul id="suggestions" class="suggestions" role="listbox" aria-label="مدن مقترحة" hidden></ul>
     </form>
 
     <p class="status" id="status" role="status" aria-live="polite"></p>
@@ -57,6 +66,7 @@
 
   <footer class="site-footer">
     <p>
+      اتبنى واتنشر أوتوماتيك بـ Docker و GitHub Actions.
       <a href="https://github.com/SaraDrwish/weather-app-devops">شوف الكود على GitHub</a>
     </p>
     <p>بيانات الطقس من <a href="https://open-meteo.com/">Open-Meteo</a></p>

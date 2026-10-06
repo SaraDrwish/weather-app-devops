@@ -1,11 +1,3 @@
-// =========================================================
-// منطق التطبيق
-// 1) ناخد اسم المدينة ونحولها لإحداثيات (Geocoding API)
-// 2) نجيب الطقس بالإحداثيات (Forecast API)
-// 3) نعرض: الجو دلوقتي + منحنى 24 ساعة + الأيام الجاية
-// 4) نغير لون السما حسب الحالة
-// =========================================================
-
 const GEO_URL = "https://geocoding-api.open-meteo.com/v1/search";
 const FORECAST_URL = "https://api.open-meteo.com/v1/forecast";
 
@@ -23,8 +15,9 @@ const els = {
   wind: $("wind"),
   horizon: $("horizon"),
   days: $("days"),
+  suggestions: $("suggestions"),
 };
- 
+
 const WEATHER_CODES = {
   0: ["صافٍ", "clear"],
   1: ["صافٍ غالبًا", "clear"],
@@ -68,14 +61,12 @@ function skyFor(code, isDay) {
   return kind;
 }
 
-// "2026-10-06T15:00" → "3م"
 function formatHour(isoTime) {
   const hour = Number(isoTime.slice(11, 13));
   const h12 = hour % 12 === 0 ? 12 : hour % 12;
   return `${h12}${hour < 12 ? "ص" : "م"}`;
 }
 
-// "2026-10-07" → "الأربعاء"
 const weekday = new Intl.DateTimeFormat("ar-EG", { weekday: "long" });
 function formatDay(isoDate, index) {
   if (index === 0) return "اليوم";
@@ -83,20 +74,24 @@ function formatDay(isoDate, index) {
   return weekday.format(new Date(y, m - 1, d));
 }
 
-async function getJSON(url) {
-  const response = await fetch(url);
+async function getJSON(url, signal) {
+  const response = await fetch(url, { signal });
   if (!response.ok) throw new Error(`HTTP ${response.status}`);
   return response.json();
 }
 
-// اسم مدينة → { name, country, latitude, longitude } أو null لو مش موجودة
 async function findCity(query) {
   const params = new URLSearchParams({ name: query, count: 1, language: "ar" });
   const data = await getJSON(`${GEO_URL}?${params}`);
   return data.results ? data.results[0] : null;
 }
 
-// إحداثيات → بيانات الطقس كلها في طلب واحد
+async function searchCities(query, signal) {
+  const params = new URLSearchParams({ name: query, count: 6, language: "ar" });
+  const data = await getJSON(`${GEO_URL}?${params}`, signal);
+  return data.results || [];
+}
+
 async function getForecast(lat, lon) {
   const params = new URLSearchParams({
     latitude: lat,
@@ -104,15 +99,11 @@ async function getForecast(lat, lon) {
     current: "temperature_2m,apparent_temperature,relative_humidity_2m,wind_speed_10m,weather_code,is_day",
     hourly: "temperature_2m",
     daily: "weather_code,temperature_2m_max,temperature_2m_min",
-    timezone: "auto",    
+    timezone: "auto",
     forecast_days: 6,
   });
   return getJSON(`${FORECAST_URL}?${params}`);
 }
-
-// ---------------------------------------------------------
-// العرض
-// ---------------------------------------------------------
 
 function renderNow(place, current) {
   const [text] = describe(current.weather_code);
@@ -123,11 +114,11 @@ function renderNow(place, current) {
   els.humidity.textContent = `${current.relative_humidity_2m}٪`;
   els.wind.textContent = `${Math.round(current.wind_speed_10m)} كم/س`;
   document.body.dataset.sky = skyFor(current.weather_code, current.is_day === 1);
-  document.title = `${place.name} ${Math.round(current.temperature_2m)}° | سما`;
+  document.title = `${place.name} ${Math.round(current.temperature_2m)}° | سار`;
 }
 
 function renderHorizon(hourly, currentTime) {
-  const nowHour = currentTime.slice(0, 13); 
+  const nowHour = currentTime.slice(0, 13);
   let start = hourly.time.findIndex((t) => t.startsWith(nowHour));
   if (start < 0) start = 0;
 
@@ -141,7 +132,7 @@ function renderHorizon(hourly, currentTime) {
   const W = 600, H = 150, top = 30, bottom = 115, side = 20;
   const min = Math.min(...temps);
   const max = Math.max(...temps);
-  const span = max - min || 1; 
+  const span = max - min || 1;
 
   const points = temps.map((t, i) => ({
     x: W - side - (i * (W - 2 * side)) / (temps.length - 1),
@@ -217,20 +208,10 @@ function renderDays(daily) {
     .join("");
 }
 
-// ---------------------------------------------------------
-// الدالة الرئيسية: بتربط كل اللي فوق ببعض
-// ---------------------------------------------------------
-async function showWeather(query) {
+async function showPlace(place) {
   els.status.textContent = "جاري تحميل الطقس...";
   els.now.setAttribute("aria-busy", "true");
-
   try {
-    const place = await findCity(query);
-    if (!place) {
-      els.status.textContent = `مفيش مدينة باسم "${query}". جرب تكتبها بالإنجليزي، مثلًا Riyadh.`;
-      return;
-    }
-
     const data = await getForecast(place.latitude, place.longitude);
     renderNow(place, data.current);
     renderHorizon(data.hourly, data.current.time);
@@ -244,8 +225,128 @@ async function showWeather(query) {
   }
 }
 
+async function showWeather(query) {
+  els.status.textContent = "جاري تحميل الطقس...";
+  try {
+    const place = await findCity(query);
+    if (!place) {
+      els.status.textContent = `مفيش مدينة باسم "${query}". جرب تكتبها بالإنجليزي، مثلًا Riyadh.`;
+      return;
+    }
+    await showPlace(place);
+  } catch (error) {
+    console.error(error);
+    els.status.textContent = "الاتصال بخدمة الطقس فشل. اتأكد من الإنترنت وجرب تاني.";
+  }
+}
+
+let suggestionResults = [];
+let activeIndex = -1;
+let typingTimer = null;
+let currentRequest = null;
+
+function closeSuggestions() {
+  els.suggestions.hidden = true;
+  els.suggestions.innerHTML = "";
+  els.input.setAttribute("aria-expanded", "false");
+  els.input.removeAttribute("aria-activedescendant");
+  suggestionResults = [];
+  activeIndex = -1;
+}
+
+function renderSuggestions(places) {
+  suggestionResults = places;
+  activeIndex = -1;
+
+  if (places.length === 0) {
+    els.suggestions.innerHTML = `<li class="suggestion-empty" role="option" aria-disabled="true">مفيش مدن بالاسم ده</li>`;
+  } else {
+    els.suggestions.innerHTML = places
+      .map((p, i) => {
+        const region = [p.admin1, p.country].filter(Boolean).join("، ");
+        return `
+          <li id="suggestion-${i}" class="suggestion" role="option" aria-selected="false" data-index="${i}">
+            <span class="suggestion-name">${p.name}</span>
+            <span class="suggestion-region">${region}</span>
+          </li>`;
+      })
+      .join("");
+  }
+
+  els.suggestions.hidden = false;
+  els.input.setAttribute("aria-expanded", "true");
+}
+
+function setActive(index) {
+  const items = els.suggestions.querySelectorAll(".suggestion");
+  if (items.length === 0) return;
+  activeIndex = (index + items.length) % items.length;
+  items.forEach((item, i) => item.setAttribute("aria-selected", i === activeIndex ? "true" : "false"));
+  els.input.setAttribute("aria-activedescendant", items[activeIndex].id);
+  items[activeIndex].scrollIntoView({ block: "nearest" });
+}
+
+function chooseSuggestion(index) {
+  const place = suggestionResults[index];
+  if (!place) return;
+  els.input.value = place.name;
+  closeSuggestions();
+  showPlace(place);
+}
+
+els.input.addEventListener("input", () => {
+  const query = els.input.value.trim();
+  clearTimeout(typingTimer);
+
+  if (query.length < 2) {
+    closeSuggestions();
+    return;
+  }
+
+  typingTimer = setTimeout(async () => {
+    if (currentRequest) currentRequest.abort();
+    currentRequest = new AbortController();
+    try {
+      const places = await searchCities(query, currentRequest.signal);
+      if (els.input.value.trim() === query) renderSuggestions(places);
+    } catch (error) {
+      if (error.name !== "AbortError") console.error(error);
+    }
+  }, 300);
+});
+
+els.input.addEventListener("keydown", (event) => {
+  if (els.suggestions.hidden) return;
+
+  if (event.key === "ArrowDown") {
+    event.preventDefault();
+    setActive(activeIndex + 1);
+  } else if (event.key === "ArrowUp") {
+    event.preventDefault();
+    setActive(activeIndex - 1);
+  } else if (event.key === "Enter" && activeIndex >= 0) {
+    event.preventDefault();
+    chooseSuggestion(activeIndex);
+  } else if (event.key === "Escape") {
+    closeSuggestions();
+  }
+});
+
+els.suggestions.addEventListener("mousedown", (event) => {
+  const item = event.target.closest(".suggestion");
+  if (!item) return;
+  event.preventDefault();
+  chooseSuggestion(Number(item.dataset.index));
+});
+
+document.addEventListener("click", (event) => {
+  if (!els.form.contains(event.target)) closeSuggestions();
+});
+
 els.form.addEventListener("submit", (event) => {
-  event.preventDefault(); // نمنع الصفحة إنها تعمل reload، وده سلوك الفورم الافتراضي
+  event.preventDefault();
+  clearTimeout(typingTimer);
+  closeSuggestions();
   const query = els.input.value.trim();
   if (query) showWeather(query);
 });
