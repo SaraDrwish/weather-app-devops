@@ -1,43 +1,29 @@
-# =========================================================
-# Pipeline الـ CI/CD
-# CI = مع كل تعديل: نبني الـ image ونختبرها
-# CD = لما التعديل يدخل main: نرفع الـ image وننشر الموقع
-# ⚠️ الـ YAML حساس للمسافات: مسافات بس، من غير Tab
-# =========================================================
-
-# الاسم اللي بيظهر في تبويب Actions
+ 
 name: CI/CD
 
-# on: إمتى الـ workflow يشتغل
 on:
   push:
-    branches: [main]   # لما حد يعمل push على main (يعني merge)
-  pull_request:        # ومع أي Pull Request
+    branches: [main]  
+  pull_request:      
 
 jobs:
 
   # ============ المهمة الأولى: CI (بناء واختبار) ============
   build-and-test:
-    # جهاز Linux مؤقت من GitHub ببلاش، بيتمسح بعد ما يخلص
     runs-on: ubuntu-latest
 
-    # أقل صلاحيات ممكنة (مبدأ أمان مهم)
     permissions:
-      contents: read     # يقرا الكود بس
-      packages: write    # يرفع images على GitHub Container Registry
+      contents: read    
+      packages: write   
 
-    # الخطوات بالترتيب. لو خطوة فشلت، اللي بعدها مابيشتغلش
     steps:
       - name: Get the code
-        # أداة جاهزة بتنزل الكود على الجهاز المؤقت
         uses: actions/checkout@v4
 
       - name: Build Docker image
-        # نفس الأمر اللي بتكتبيه على جهازك
         run: docker build -t weather-app .
 
       - name: Test the container
-        # | معناها الأوامر الجاية كذا سطر
         run: |
           docker run -d -p 8080:80 --name weather weather-app
           # نستنى nginx يقوم
@@ -49,7 +35,6 @@ jobs:
           echo "✅ كل ملفات الموقع شغالة جوه الـ container"
 
       - name: Push image to GitHub Container Registry
-        # بس عند الـ push على main، مش في الـ PR (لسه تحت المراجعة)
         if: github.event_name == 'push'
         run: |
           # تسجيل دخول بمفتاح مؤقت بيعمله GitHub لوحده. --password-stdin عشان مايظهرش في الـ logs
@@ -69,33 +54,27 @@ jobs:
     runs-on: ubuntu-latest
 
     permissions:
-      pages: write       # ينشر على GitHub Pages
-      id-token: write    # يثبت لـ Pages إن الطلب جاي من الـ repo ده فعلًا
+      pages: write     
+      id-token: write   
 
-    # بيظهر لينك الموقع جنب التشغيل في تبويب Actions
     environment:
       name: github-pages
       url: ${{ steps.deployment.outputs.page_url }}
 
     steps:
       - name: Get the code
-        # كل job على جهاز جديد، فلازم ننزل الكود تاني
         uses: actions/checkout@v4
 
       - name: Prepare site files
-        # ملفات الموقع بس، من غير Dockerfile وملفات الإعدادات
         run: |
           mkdir _site
           cp index.html style.css app.js _site/
 
-      # يجهز إعدادات Pages
       - uses: actions/configure-pages@v5
 
-      # يضغط فولدر _site ويجهزه للنشر
       - uses: actions/upload-pages-artifact@v3
         with:
           path: _site
 
-      # النشر الفعلي. id عشان نقرا منه اللينك فوق في environment
       - id: deployment
         uses: actions/deploy-pages@v4
