@@ -1,0 +1,7 @@
+# .gitignore: ملفات Git مايتابعهاش ومايرفعهاش على GitHub
+.DS_Store
+Thumbs.db
+.vscode/
+_site/
+*.log
+.env

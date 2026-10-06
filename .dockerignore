@@ -1,0 +1,7 @@
+# .dockerignore: ملفات Docker يتجاهلها وقت الـ build
+# الفايدة: الـ build أسرع، ومفيش ملفات ملهاش لازمة أو حساسة تدخل الـ image
+.git
+.github
+README.md
+*.md
+.gitignore

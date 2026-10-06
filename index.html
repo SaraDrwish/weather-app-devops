@@ -1,0 +1,67 @@
+ <!DOCTYPE html>
+
+<html lang="ar" dir="rtl">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="description" content="سما: الطقس الحالي وتوقعات الساعات والأيام القادمة لأي مدينة.">
+  <title>سارة | حالة الطقس</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Baloo+Bhaijaan+2:wght@500;700;800&family=Rubik:wght@400;500&display=swap">
+  <link rel="stylesheet" href="style.css">
+</head>
+
+<body data-sky="clear-day">
+
+  <main class="app">
+
+    <form class="search" id="search-form" role="search">
+      <label for="city-input" class="visually-hidden">اسم المدينة</label>
+
+      <input id="city-input" name="city" type="search" autocomplete="off"
+             placeholder="ابحث عن مدينة" value="Cairo" required>
+
+      <button type="submit">اعرض الطقس</button>
+    </form>
+
+    <p class="status" id="status" role="status" aria-live="polite"></p>
+
+    <section class="now" id="now" aria-busy="true">
+      <div class="now-head">
+        <h1 class="city" id="city-name">...</h1>
+        <p class="condition" id="condition">&nbsp;</p>
+      </div>
+
+      <div class="orb">
+        <p class="temp"><span id="temp">--</span><span class="deg" aria-hidden="true">°</span></p>
+      </div>
+
+      <dl class="details">
+        <div><dt>تبدو كأنها</dt><dd id="feels">--</dd></div>
+        <div><dt>الرطوبة</dt><dd id="humidity">--</dd></div>
+        <div><dt>الرياح</dt><dd id="wind">--</dd></div>
+      </dl>
+    </section>
+
+    <section class="horizon" aria-labelledby="horizon-title">
+      <h2 id="horizon-title">الساعات الـ 24 القادمة</h2>
+      <svg id="horizon" viewBox="0 0 600 150" role="img" aria-label="منحنى درجات الحرارة"></svg>
+    </section>
+
+    <section class="days" aria-labelledby="days-title">
+      <h2 id="days-title">الأيام القادمة</h2>
+      <ol id="days" class="day-list"></ol>
+    </section>
+  </main>
+
+  <footer class="site-footer">
+    <p>
+      <a href="https://github.com/SaraDrwish/weather-app-devops">شوف الكود على GitHub</a>
+    </p>
+    <p>بيانات الطقس من <a href="https://open-meteo.com/">Open-Meteo</a></p>
+  </footer>
+
+  <script src="app.js"></script>
+</body>
+</html>

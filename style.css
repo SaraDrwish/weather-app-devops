@@ -1,0 +1,333 @@
+/* =========================================================
+   سما: ملف التصميم (نسخة الباستيل)
+   الفكرة: السما سحابة ألوان باستيل ناعمة بتتغير حسب الجو،
+   وفي النص "كورة" ملونة بتتنفس بهدوء وجواها درجة الحرارة.
+   ========================================================= */
+
+/* @property: بنعرّف ألوان السما كـ "ألوان" للمتصفح،
+   عشان يقدر يعمل انتقال ناعم بينها لما الجو يتغير */
+@property --c1   { syntax: '<color>'; inherits: true; initial-value: #ffe3a3; }
+@property --c2   { syntax: '<color>'; inherits: true; initial-value: #ffc4b8; }
+@property --c3   { syntax: '<color>'; inherits: true; initial-value: #f8c8de; }
+@property --base { syntax: '<color>'; inherits: true; initial-value: #fff5ea; }
+
+:root {
+  /* لون الكتابة: بنفسجي غامق ناعم بدل الأسود */
+  --ink: 59 47 92;
+
+  /* ألوان علامات الأيام حسب نوع الجو */
+  --kind-clear: #ffd772;
+  --kind-cloudy: #c9b8f2;
+  --kind-rain: #9fbcff;
+  --kind-snow: #a8e3cf;
+  --kind-fog: #e2d3c3;
+  --kind-storm: #e9a6cf;
+
+  --font-display: 'Baloo Bhaijaan 2', 'Rubik', sans-serif;
+  --font-body: 'Rubik', system-ui, sans-serif;
+
+  --size-sm: 0.875rem;
+  --size-md: 1rem;
+  --size-lg: 1.25rem;
+  --size-xl: clamp(2.2rem, 7vw, 3.4rem);
+  --size-temp: clamp(5.5rem, 22vw, 8.5rem);
+}
+
+/* ===== حالات السما: 3 ألوان للسحب + لون أساسي ===== */
+body[data-sky="clear-day"]    { --c1: #ffe3a3; --c2: #ffc4b8; --c3: #f8c8de; --base: #fff5ea; }
+body[data-sky="clear-night"]  { --c1: #c7bdf5; --c2: #a9b8f5; --c3: #e7c6ef; --base: #e3def8; }
+body[data-sky="cloudy-day"]   { --c1: #ddd2f7; --c2: #c6d6fb; --c3: #cfeee2; --base: #f3f1fa; }
+body[data-sky="cloudy-night"] { --c1: #c3c4ee; --c2: #b7c9ef; --c3: #d7cdf2; --base: #e2e2f4; }
+body[data-sky="rain"]         { --c1: #b3cbff; --c2: #bfe9df; --c3: #d4c8f6; --base: #edf3fb; }
+body[data-sky="snow"]         { --c1: #cdeee3; --c2: #ffffff; --c3: #d3defa; --base: #f6fafb; }
+body[data-sky="fog"]          { --c1: #ebe1d6; --c2: #ddd6ee; --c3: #f1e6e2; --base: #f5f1ec; }
+body[data-sky="storm"]        { --c1: #d2bff3; --c2: #f0b9d6; --c3: #b8bcf0; --base: #ebe3f6; }
+
+*, *::before, *::after { box-sizing: border-box; }
+
+body {
+  margin: 0;
+  min-height: 100dvh;
+  font-family: var(--font-body);
+  line-height: 1.6;
+  color: rgb(var(--ink));
+  /* 3 سحب ألوان دايرية فوق لون أساسي = سما باستيل ناعمة */
+  background:
+    radial-gradient(60vmax 45vmax at 85% 5%, var(--c1), transparent 70%),
+    radial-gradient(55vmax 45vmax at 10% 30%, var(--c2), transparent 70%),
+    radial-gradient(60vmax 50vmax at 70% 95%, var(--c3), transparent 70%),
+    var(--base);
+  transition: --c1 1.4s ease, --c2 1.4s ease, --c3 1.4s ease, --base 1.4s ease;
+  display: flex;
+  flex-direction: column;
+  position: relative;
+}
+
+/* نجوم صغيرة تظهر بالليل بس */
+body::before {
+  content: "";
+  position: fixed;
+  inset: 0;
+  pointer-events: none; /* ماتمنعش الضغط على أي حاجة تحتها */
+  background-image:
+    radial-gradient(2px 2px at 12% 18%, #fff, transparent),
+    radial-gradient(1.5px 1.5px at 28% 8%, #fff, transparent),
+    radial-gradient(2px 2px at 47% 22%, #fff, transparent),
+    radial-gradient(1.5px 1.5px at 66% 12%, #fff, transparent),
+    radial-gradient(2px 2px at 82% 26%, #fff, transparent),
+    radial-gradient(1.5px 1.5px at 92% 6%, #fff, transparent),
+    radial-gradient(1.5px 1.5px at 6% 40%, #fff, transparent);
+  opacity: 0;
+  transition: opacity 1.4s ease;
+}
+body[data-sky$="night"]::before { opacity: 0.9; } /* $= يعني "بينتهي بـ night" */
+
+.app {
+  width: 100%;
+  max-width: 50rem;
+  margin-inline: auto;
+  padding: 1.5rem 1rem 2rem;
+  flex: 1;
+  position: relative; /* فوق النجوم */
+}
+
+:focus-visible {
+  outline: 2.5px solid rgb(var(--ink));
+  outline-offset: 3px;
+}
+
+.visually-hidden {
+  position: absolute;
+  width: 1px; height: 1px;
+  overflow: hidden;
+  clip: rect(0 0 0 0);
+  white-space: nowrap;
+}
+
+/* ===== البحث: كبسولة بيضا شفافة ===== */
+.search {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.35rem;
+  padding-inline-start: 1.1rem;
+  background: rgb(255 255 255 / 0.6);
+  border: 1.5px solid rgb(255 255 255 / 0.9);
+  border-radius: 999px;
+  backdrop-filter: blur(10px);
+}
+.search input {
+  flex: 1;
+  min-width: 0;
+  background: transparent;
+  border: 0;
+  color: inherit;
+  font: 400 var(--size-md) var(--font-body);
+}
+.search input::placeholder { color: rgb(var(--ink) / 0.5); }
+.search input:focus-visible { outline: none; }
+.search:focus-within { border-color: rgb(var(--ink) / 0.5); }
+.search button {
+  background: rgb(var(--ink));
+  color: #fff8f0;
+  border: 0;
+  border-radius: 999px;
+  font: 500 var(--size-sm) var(--font-body);
+  padding: 0.6rem 1.15rem;
+  cursor: pointer;
+  white-space: nowrap;
+}
+.search button:hover { background: rgb(var(--ink) / 0.85); }
+
+.status {
+  min-height: 1.6em;
+  margin: 0.75rem 0 0;
+  font-size: var(--size-sm);
+}
+
+/* ===== الجو دلوقتي =====
+   grid-template-areas: بنسمي أماكن الأجزاء ونرتبها بالأسماء
+   على الكمبيوتر: العنوان والتفاصيل يمين، والكورة شمال */
+.now {
+  display: grid;
+  grid-template-columns: 1fr auto;
+  grid-template-areas:
+    "head    orb"
+    "details orb";
+  align-items: center;
+  column-gap: 2rem;
+  margin-top: 1.5rem;
+}
+.now-head { grid-area: head; align-self: end; }
+.orb      { grid-area: orb; }
+.details  { grid-area: details; align-self: start; }
+
+.city {
+  font: 800 var(--size-xl)/1.1 var(--font-display);
+  margin: 0;
+}
+.condition {
+  font: 500 var(--size-lg) var(--font-display);
+  margin: 0.2rem 0 0;
+  opacity: 0.8;
+}
+
+/* ===== الكورة: العنصر المميز في الصفحة =====
+   شكل عضوي (border-radius بـ 8 قيم مختلفة) بيتغير ببطء كأنه بيتنفس */
+.orb {
+  width: clamp(13rem, 42vw, 19rem);
+  aspect-ratio: 1;
+  display: grid;
+  place-items: center;
+  border-radius: 58% 42% 55% 45% / 48% 58% 42% 52%;
+  background:
+    radial-gradient(circle at 32% 28%, rgb(255 255 255 / 0.95), transparent 45%),
+    radial-gradient(circle at 70% 75%, var(--c3), transparent 70%),
+    linear-gradient(145deg, var(--c1), var(--c2));
+  border: 2px solid rgb(255 255 255 / 0.85);
+  /* ظل بلون السما نفسها بدل الرمادي، فيبان كأنه بينوّر */
+  box-shadow: 0 30px 70px -25px var(--c2), inset 0 -12px 30px rgb(255 255 255 / 0.35);
+  animation: breathe 14s ease-in-out infinite alternate;
+}
+@keyframes breathe {
+  to { border-radius: 45% 55% 42% 58% / 56% 44% 56% 44%; transform: rotate(3deg) scale(1.02); }
+}
+
+.temp {
+  font: 800 var(--size-temp)/1 var(--font-display);
+  margin: 0;
+  direction: ltr;
+  font-variant-numeric: tabular-nums;
+  letter-spacing: -0.02em;
+  translate: 0 0.08em; /* تظبيط بصري: الخط ده عالي شوية عن النص */
+}
+.temp .deg {
+  font-size: 0.5em;
+  vertical-align: top;
+  opacity: 0.6;
+}
+
+/* التفاصيل: 3 كبسولات صغيرة */
+.details {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+  margin: 1.25rem 0 0;
+}
+.details div {
+  display: flex;
+  align-items: baseline;
+  gap: 0.4rem;
+  padding: 0.4rem 0.9rem;
+  border-radius: 999px;
+  background: rgb(255 255 255 / 0.55);
+}
+.details dt { font-size: var(--size-sm); opacity: 0.7; }
+.details dd { margin: 0; font-weight: 500; }
+
+/* ===== عناوين الأقسام ===== */
+h2 {
+  font: 700 var(--size-lg) var(--font-display);
+  margin: 0 0 0.5rem;
+}
+
+/* ===== منحنى الـ 24 ساعة ===== */
+.horizon { margin-top: 3rem; }
+#horizon { width: 100%; height: auto; display: block; overflow: visible; }
+#horizon .line { fill: none; stroke: url(#line-grad); stroke-width: 4; stroke-linecap: round; }
+#horizon .area { fill: url(#area-grad); }
+#horizon .stop-a { stop-color: #f7a8c4; }  /* وردي */
+#horizon .stop-b { stop-color: #b9a2f0; }  /* ليلكي */
+#horizon .stop-c { stop-color: #8fb4ff; }  /* أزرق باستيل */
+#horizon .stop-area-top { stop-color: #ffffff; stop-opacity: 0.75; }
+#horizon .stop-area-bottom { stop-color: #ffffff; stop-opacity: 0; }
+#horizon .dot { fill: #fff; stroke: rgb(var(--ink)); stroke-width: 2; }
+#horizon .temp-label { fill: rgb(var(--ink)); font: 500 15px var(--font-body); }
+#horizon .hour-label { fill: rgb(var(--ink) / 0.65); font: 400 13px var(--font-body); }
+
+/* ===== الأيام القادمة ===== */
+.days { margin-top: 2.5rem; }
+.day-list {
+  list-style: none;
+  margin: 0;
+  padding: 0.5rem 1rem;
+  border-radius: 28px;
+  background: rgb(255 255 255 / 0.45);
+  border: 1.5px solid rgb(255 255 255 / 0.8);
+}
+.day-list li {
+  display: grid;
+  grid-template-columns: 5.5rem 1fr 2.5rem minmax(4rem, 9rem) 2.5rem;
+  align-items: center;
+  gap: 0.75rem;
+  padding-block: 0.65rem;
+}
+.day-list li + li { border-top: 1.5px dashed rgb(var(--ink) / 0.12); }
+.day-name { font: 700 var(--size-md) var(--font-display); }
+.day-cond { display: flex; align-items: center; gap: 0.5rem; font-size: var(--size-sm); }
+
+/* العلامة الملونة: لونها بيقول نوع الجو */
+.swatch {
+  width: 0.85rem; height: 0.85rem;
+  border-radius: 50%;
+  flex: none;
+  background: var(--kind-cloudy);
+  box-shadow: 0 0 0 3px rgb(255 255 255 / 0.7);
+}
+li[data-kind="clear"]  .swatch { background: var(--kind-clear); }
+li[data-kind="rain"]   .swatch { background: var(--kind-rain); }
+li[data-kind="snow"]   .swatch { background: var(--kind-snow); }
+li[data-kind="fog"]    .swatch { background: var(--kind-fog); }
+li[data-kind="storm"]  .swatch { background: var(--kind-storm); }
+
+.day-min { text-align: center; opacity: 0.6; }
+.day-max { text-align: center; font-weight: 500; }
+
+/* شريط المدى: الجزء الملون من الصغرى للعظمى، من أزرق بارد لخوخي دافي */
+.range {
+  position: relative;
+  height: 8px;
+  border-radius: 4px;
+  background: rgb(var(--ink) / 0.08);
+}
+.range span {
+  position: absolute;
+  top: 0; bottom: 0;
+  border-radius: 4px;
+  background: linear-gradient(to left, #9fbcff, #c9b8f2, #ffb59e);
+}
+
+/* ===== الموبايل ===== */
+@media (max-width: 34rem) {
+  /* كل حاجة تحت بعض، والكورة في النص */
+  .now {
+    grid-template-columns: 1fr;
+    grid-template-areas: "head" "orb" "details";
+    row-gap: 1.25rem;
+  }
+  .orb { justify-self: center; width: min(16rem, 70vw); }
+  .details { justify-content: center; margin-top: 0.5rem; }
+  .day-list li { grid-template-columns: 4.5rem 1.2rem 2.25rem 1fr 2.25rem; }
+  .day-cond { font-size: 0; } /* نخفي النص ونسيب العلامة الملونة بس */
+  #horizon .temp-label { font-size: 24px; }
+  #horizon .hour-label { font-size: 21px; }
+}
+
+/* لو المستخدم مفعّل "تقليل الحركة"، نوقف التنفس والانتقالات */
+@media (prefers-reduced-motion: reduce) {
+  body, body::before { transition: none; }
+  .orb { animation: none; }
+}
+
+/* ===== الفوتر ===== */
+.site-footer {
+  max-width: 50rem;
+  width: 100%;
+  margin-inline: auto;
+  padding: 1rem 1rem 2rem;
+  font-size: var(--size-sm);
+  opacity: 0.8;
+  position: relative;
+}
+.site-footer p { margin: 0.2rem 0; }
+.site-footer a { color: inherit; text-underline-offset: 3px; }
